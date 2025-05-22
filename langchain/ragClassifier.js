@@ -1,5 +1,6 @@
 // langchain/ragClassifier.js
 const path = require("path");
+const { traceable } = require("langsmith/traceable");
 const { FaissStore } = require("@langchain/community/vectorstores/faiss");
 const { OpenAIEmbeddings, ChatOpenAI } = require("@langchain/openai");
 const { RunnableSequence } = require("@langchain/core/runnables");
@@ -31,27 +32,13 @@ Context from knowledge base:
 Symptom: {input}
 Respond in JSON format with keys "urgency_level" and "category".
 `);
-// Build the RAG pipeline
-// const ragChainPromise = retrieverPromise.then(retriever =>
-//   RunnableSequence.from([
-//     async input => {
-//       const docs = await retriever.getRelevantDocuments(input);
-//       return { context: docs.map(d => d.pageContent).join("\n\n"), input };
-//     },
-//     prompt,
-//     llm,
-//     new StringOutputParser(),
-//   ])
-// );
 
 const ragChainPromise = retrieverPromise.then(retriever =>
   RunnableSequence.from([
     async input => {
-      const docs = await retriever.getRelevantDocuments(input);
-      return {
-        context: docs.map(d => d.pageContent).join("\n\n"),
-        input: String(input) // Safe and clean for LangSmith tracing
-      };
+      const results = await retriever.vectorStore.similaritySearchWithScore(input, 4);
+      const context = results.map(([doc, score]) => `Score: ${score}\n${doc.pageContent}`).join("\n\n");
+      return { context, input };
     },
     prompt,
     llm,
@@ -59,19 +46,29 @@ const ragChainPromise = retrieverPromise.then(retriever =>
   ])
 );
 
-// Final function
-async function classifyWithRAG(description) {
-  if (!description || typeof description !== "string" || !description.trim()) {
-    throw new Error("Invalid description input.");
+const classifyWithRAG = traceable(
+  async function classifyWithRAG(description) {
+    if (!description || typeof description !== "string" || !description.trim()) {
+      throw new Error("Invalid description input.");
+    }
+
+    try {
+      const ragChain = await ragChainPromise;
+      const result = await ragChain.invoke(description.trim());
+      const parsed = JSON.parse(result);
+      return {
+        urgency_level: parsed.urgency_level,
+        category: parsed.category,
+      };
+    } catch (err) {
+      console.error("RAG Error:", err);
+      throw new Error("Classification failed: " + err.message);
+    }
+  },
+  {
+    name: "classifyWithRAG", // Helps LangSmith identify it
+    inputs: (description) => ({ description }), // Avoid Express objects
   }
-  try {
-    const ragChain = await ragChainPromise;
-    const result = await ragChain.invoke(description.trim());
-    const parsed = JSON.parse(result);
-    return { urgency_level: parsed.urgency_level, category: parsed.category };
-  } catch (err) {
-    console.error("RAG Error:", err);
-    throw new Error("Classification failed: " + err.message);
-  }
-}
+);
+
 module.exports = { classifyWithRAG };
