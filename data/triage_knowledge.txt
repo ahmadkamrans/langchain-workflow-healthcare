@@ -1,0 +1,31 @@
+Symptom: Chest pain and shortness of breath
+Category: Cardiac
+Urgency: Emergency
+
+Symptom: Mild fever and sore throat
+Category: Infection
+Urgency: Non-Urgent
+
+Symptom: Rash and itchy skin
+Category: Allergy
+Urgency: Follow-Up Needed
+
+Symptom: Deep cut bleeding heavily
+Category: Injury
+Urgency: Emergency
+
+Symptom: Persistent headache for days
+Category: Pain
+Urgency: Urgent Care
+
+Symptom: Body ache and runny nose
+Category: Flu
+Urgency: Non-Urgent
+
+Symptom: Sudden vision loss in one eye
+Category: Neurology
+Urgency: Emergency
+
+Symptom: Anxiety and rapid heartbeat
+Category: Mental Health
+Urgency: Urgent Care
