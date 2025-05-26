@@ -13,6 +13,8 @@ app.use(cors());
 app.use(express.json());
 // Routes
 app.use("/triage-full", require("./routes/triageFull"));
+app.use("/triage-hybrid", require("./routes/triageHybrid"));
+
 // Test retriever
 app.get("/test-retriever", async (req, res) => {
   try {
