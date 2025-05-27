@@ -354,14 +354,14 @@ Symptom: Sudden severe testicular pain
 Category: Urological
 Urgency: Emergency
 
-Symptom: Bleeding after intercourse
-Category: Gynecological
-Urgency: Urgent Care
-
 Symptom: Vaginal bleeding during pregnancy
 Category: Obstetric
 Urgency: Emergency
 
 Symptom: Swollen lymph nodes with fever
 Category: Infectious
+Urgency: Urgent Care
+
+Symptom: Bleeding without a clear location can still indicate urgency. If someone is bleeding and the source is not specified, emergency care may still be required.
+Category: Unspecified Hemorrhage
 Urgency: Urgent Care
