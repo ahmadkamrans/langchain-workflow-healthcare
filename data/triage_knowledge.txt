@@ -7,15 +7,15 @@ Category: Infection
 Urgency: Non-Urgent
 
 Symptom: Rash and itchy skin
-Category: Allergy
+Category: Dermatological
 Urgency: Follow-Up Needed
 
 Symptom: Deep cut bleeding heavily
-Category: Injury
+Category: Trauma
 Urgency: Emergency
 
 Symptom: Persistent headache for days
-Category: Pain
+Category: Neurological
 Urgency: Urgent Care
 
 Symptom: Body ache and runny nose
@@ -23,9 +23,345 @@ Category: Flu
 Urgency: Non-Urgent
 
 Symptom: Sudden vision loss in one eye
-Category: Neurology
+Category: Ophthalmological
 Urgency: Emergency
 
 Symptom: Anxiety and rapid heartbeat
 Category: Mental Health
+Urgency: Urgent Care
+
+Symptom: Lower abdominal pain and nausea
+Category: Gastrointestinal
+Urgency: Urgent Care
+
+Symptom: Painful urination and frequent urge
+Category: Urological
+Urgency: Follow-Up Needed
+
+Symptom: Swollen ankles and fatigue
+Category: Cardiac
+Urgency: Urgent Care
+
+Symptom: Sudden confusion and slurred speech
+Category: Neurological
+Urgency: Emergency
+
+Symptom: Frequent nosebleeds and easy bruising
+Category: Hematological
+Urgency: Follow-Up Needed
+
+Symptom: Persistent cough and wheezing
+Category: Respiratory
+Urgency: Urgent Care
+
+Symptom: Unexplained weight loss and night sweats
+Category: Oncology
+Urgency: Follow-Up Needed
+
+Symptom: Back pain after lifting heavy object
+Category: Musculoskeletal
+Urgency: Non-Urgent
+
+Symptom: Yellowing of skin and eyes
+Category: Hepatic
+Urgency: Urgent Care
+
+Symptom: Dizziness and blurred vision after standing
+Category: Neurological
+Urgency: Follow-Up Needed
+
+Symptom: High fever and stiff neck
+Category: Infectious
+Urgency: Emergency
+
+Symptom: Difficulty breathing and chest tightness
+Category: Respiratory
+Urgency: Emergency
+
+Symptom: Tingling in hands and feet
+Category: Neurological
+Urgency: Follow-Up Needed
+
+Symptom: Irregular heartbeat and lightheadedness
+Category: Cardiac
+Urgency: Urgent Care
+
+Symptom: Severe lower back pain radiating to leg
+Category: Musculoskeletal
+Urgency: Urgent Care
+
+Symptom: Joint swelling and morning stiffness
+Category: Rheumatological
+Urgency: Follow-Up Needed
+
+Symptom: Difficulty swallowing and throat pain
+Category: ENT
+Urgency: Urgent Care
+
+Symptom: Pain and swelling after insect bite
+Category: Allergy
+Urgency: Follow-Up Needed
+
+Symptom: Vomiting and diarrhea for over 24 hours
+Category: Gastrointestinal
+Urgency: Urgent Care
+
+Symptom: Blood in stool
+Category: Gastrointestinal
+Urgency: Urgent Care
+
+Symptom: Fatigue and pale skin
+Category: Hematological
+Urgency: Follow-Up Needed
+
+Symptom: Short-term memory loss
+Category: Neurological
+Urgency: Follow-Up Needed
+
+Symptom: Frequent urination and excessive thirst
+Category: Endocrine
+Urgency: Follow-Up Needed
+
+Symptom: Red, swollen joint with severe pain
+Category: Rheumatological
+Urgency: Urgent Care
+
+Symptom: Vision floaters and flashes of light
+Category: Ophthalmological
+Urgency: Urgent Care
+
+Symptom: High blood pressure reading at home
+Category: Cardiac
+Urgency: Follow-Up Needed
+
+Symptom: Lump in breast
+Category: Oncology
+Urgency: Urgent Care
+
+Symptom: Painful lump in groin
+Category: Urological
+Urgency: Follow-Up Needed
+
+Symptom: Seizure episode witnessed
+Category: Neurological
+Urgency: Emergency
+
+Symptom: Persistent bloating and abdominal discomfort
+Category: Gastrointestinal
+Urgency: Follow-Up Needed
+
+Symptom: Dark-colored urine and fatigue
+Category: Hepatic
+Urgency: Urgent Care
+
+Symptom: Sudden inability to move arm or leg
+Category: Neurological
+Urgency: Emergency
+
+Symptom: Cold hands and feet with discoloration
+Category: Vascular
+Urgency: Follow-Up Needed
+
+Symptom: Recurrent nosebleeds
+Category: ENT
+Urgency: Follow-Up Needed
+
+Symptom: Pain behind the eyes and sinus pressure
+Category: ENT
+Urgency: Non-Urgent
+
+Symptom: Hallucinations and disorganized speech
+Category: Mental Health
+Urgency: Emergency
+
+Symptom: Frequent fainting spells
+Category: Cardiac
+Urgency: Emergency
+
+Symptom: Swelling and redness in calf
+Category: Vascular
+Urgency: Urgent Care
+
+Symptom: Persistent hoarseness
+Category: ENT
+Urgency: Follow-Up Needed
+
+Symptom: Sudden hearing loss in one ear
+Category: ENT
+Urgency: Emergency
+
+Symptom: Stomach cramps during menstruation
+Category: Gynecological
+Urgency: Non-Urgent
+
+Symptom: Missed periods for three months
+Category: Gynecological
+Urgency: Follow-Up Needed
+
+Symptom: Breast discharge not related to breastfeeding
+Category: Endocrine
+Urgency: Follow-Up Needed
+
+Symptom: Irregular menstrual cycles
+Category: Gynecological
+Urgency: Follow-Up Needed
+
+Symptom: Swelling in neck and difficulty breathing
+Category: Endocrine
+Urgency: Emergency
+
+Symptom: Persistent acne in adult
+Category: Dermatological
+Urgency: Non-Urgent
+
+Symptom: Hair loss in patches
+Category: Dermatological
+Urgency: Follow-Up Needed
+
+Symptom: Numbness on one side of body
+Category: Neurological
+Urgency: Emergency
+
+Symptom: Loss of coordination while walking
+Category: Neurological
+Urgency: Urgent Care
+
+Symptom: Severe allergic reaction to food
+Category: Allergy
+Urgency: Emergency
+
+Symptom: Wheezing after exercise
+Category: Respiratory
+Urgency: Follow-Up Needed
+
+Symptom: Blurred vision after using new glasses
+Category: Ophthalmological
+Urgency: Non-Urgent
+
+Symptom: Ongoing fatigue despite rest
+Category: General
+Urgency: Follow-Up Needed
+
+Symptom: Recurrent ulcers in the mouth
+Category: Dental
+Urgency: Follow-Up Needed
+
+Symptom: Sudden jaw pain
+Category: Dental
+Urgency: Urgent Care
+
+Symptom: Redness and swelling around fingernail
+Category: Dermatological
+Urgency: Non-Urgent
+
+Symptom: Chronic snoring and daytime drowsiness
+Category: ENT
+Urgency: Follow-Up Needed
+
+Symptom: Tingling and numbness after injury
+Category: Neurological
+Urgency: Urgent Care
+
+Symptom: Chronic constipation
+Category: Gastrointestinal
+Urgency: Follow-Up Needed
+
+Symptom: Dark spots in vision field
+Category: Ophthalmological
+Urgency: Urgent Care
+
+Symptom: Red, hot joint with inability to move
+Category: Rheumatological
+Urgency: Emergency
+
+Symptom: Sharp ear pain and fluid drainage
+Category: ENT
+Urgency: Urgent Care
+
+Symptom: Foul-smelling vaginal discharge
+Category: Gynecological
+Urgency: Urgent Care
+
+Symptom: Recurrent vomiting in a child
+Category: Pediatric
+Urgency: Urgent Care
+
+Symptom: Sudden inability to speak
+Category: Neurological
+Urgency: Emergency
+
+Symptom: Cough with blood-tinged sputum
+Category: Respiratory
+Urgency: Urgent Care
+
+Symptom: Muscle weakness progressing over days
+Category: Neurological
+Urgency: Urgent Care
+
+Symptom: Severe dehydration signs
+Category: General
+Urgency: Emergency
+
+Symptom: Nausea and shoulder tip pain after meal
+Category: Gastrointestinal
+Urgency: Urgent Care
+
+Symptom: Severe pain and swelling after fracture
+Category: Orthopedic
+Urgency: Emergency
+
+Symptom: Cloudy vision and eye redness
+Category: Ophthalmological
+Urgency: Urgent Care
+
+Symptom: Restlessness and pacing behavior
+Category: Mental Health
+Urgency: Urgent Care
+
+Symptom: Mild burn from hot water
+Category: Dermatological
+Urgency: Non-Urgent
+
+Symptom: Persistent ear ringing
+Category: ENT
+Urgency: Follow-Up Needed
+
+Symptom: Uncontrolled diabetes symptoms
+Category: Endocrine
+Urgency: Urgent Care
+
+Symptom: Loss of smell and taste
+Category: Neurological
+Urgency: Follow-Up Needed
+
+Symptom: Enlarged thyroid and difficulty swallowing
+Category: Endocrine
+Urgency: Urgent Care
+
+Symptom: Child not eating and crying continuously
+Category: Pediatric
+Urgency: Urgent Care
+
+Symptom: Severe joint pain after viral illness
+Category: Rheumatological
+Urgency: Follow-Up Needed
+
+Symptom: Numbness and tingling after cold exposure
+Category: Vascular
+Urgency: Follow-Up Needed
+
+Symptom: Sudden severe testicular pain
+Category: Urological
+Urgency: Emergency
+
+Symptom: Bleeding after intercourse
+Category: Gynecological
+Urgency: Urgent Care
+
+Symptom: Vaginal bleeding during pregnancy
+Category: Obstetric
+Urgency: Emergency
+
+Symptom: Swollen lymph nodes with fever
+Category: Infectious
 Urgency: Urgent Care
