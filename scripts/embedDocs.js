@@ -1,11 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
+
 const { OpenAIEmbeddings } = require("@langchain/openai");
 const { Document } = require("langchain/document");
-const { FaissStore } = require("@langchain/community/vectorstores/faiss"); // ✅ VALID
-
-
-require("dotenv").config();
+const { FaissStore } = require("@langchain/community/vectorstores/faiss");
 
 (async () => {
   const filePath = path.join(__dirname, "../data/triage_knowledge.txt");
