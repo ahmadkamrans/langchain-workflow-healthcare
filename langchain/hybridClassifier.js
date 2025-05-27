@@ -31,60 +31,76 @@ const isHealthcareRelated = async (description) => {
     modelName: "gpt-4",
     temperature: 0,
   });
-
   const systemPrompt = `
-You are a strict classifier. Only return true if the user's input is clearly related to health symptoms, illnesses, medical conditions, or treatments.
-Otherwise, return false. Respond only with "true" or "false".
+You are a strict healthcare input validator.
+Only return true if the user has clearly described one or more symptoms (e.g., chest pain, sore throat, fatigue) that could reasonably allow medical triage.
+If the input is too vague (e.g., "not feeling well", "kidney beans and heart something", "weird body issue"), or not a health symptom at all, return false.
+Respond only with "true" or "false".
 `;
-
   const result = await checkLLM.invoke([
     { role: "system", content: systemPrompt },
     { role: "user", content: description }
   ]);
-
   return result.content.trim().toLowerCase() === "true";
 };
 
 const classifyWithHybridRAG = async (description) => {
   const faissStore = await faissStorePromise;
   const resultsWithScores = await faissStore.similaritySearchWithScore(description, 5);
-
-  const usedDocs = resultsWithScores.map(([doc, score]) => doc.pageContent);
+  const scoredDocs = resultsWithScores
+    .map(([doc, score]) => ({
+      content: doc.pageContent,
+      score,
+    }))
+    .sort((a, b) => a.score - b.score); // lower = more similar
+  if (scoredDocs.length === 0) {
+    console.warn("No FAISS docs matched. Skipping to internet fallback.");
+    return {
+      urgency_level: "Unknown",
+      category: "Unknown",
+      internet_info_used: false,
+      used_doc: "No matching FAISS docs",
+      top_context_used: "None",
+      similarity_scores: [],
+      recommendation: "We could not find relevant internal references. Please consult a physician for evaluation."
+    };
+  }
+  const usedDocs = scoredDocs.map((d) => d.content);
   const context = usedDocs.join("\n---\n");
-
+  const topContextUsed = scoredDocs[0]?.content || "None";
   const prompt = new PromptTemplate({
     inputVariables: ["context", "input"],
     template: `
 You are a highly cautious and knowledgeable medical triage assistant.
-
-Use the provided internal documentation to classify the symptom.  
+Use the provided internal documentation to classify the symptom.
 If it is vague or no context supports a confident answer, return "Unknown" for both fields.
-
 Respond in this JSON format:
-
 {{
   "urgency_level": "Emergency" | "Urgent Care" | "Non-Urgent" | "Follow-Up Needed" | "Unknown",
   "category": string,
   "internet_info_used": false,
-  "used_doc": string
+  "used_doc": string,
+  "recommendation": string
 }}
-
+Based on the classification and the used document, provide a friendly 1-2 sentence recommendation to help the user understand what they should do next.
 Context:
 {context}
-
 Patient Symptom:
 {input}
     `
   });
-
-  const llmPrompt = await prompt.format({
-    context,
-    input: description,
-  });
-
+  let llmPrompt;
+  try {
+    llmPrompt = await prompt.format({
+      context: String(context),
+      input: String(description),
+    });
+  } catch (err) {
+    console.error("Error formatting prompt template:", err);
+    throw new Error("Prompt formatting failed.");
+  }
   const response = await llm.invoke(llmPrompt);
   let parsed;
-
   try {
     parsed = JSON.parse(response.content || "{}");
   } catch (e) {
@@ -93,11 +109,11 @@ Patient Symptom:
       urgency_level: "Unknown",
       category: "Unknown",
       internet_info_used: false,
-      used_doc: "None"
+      used_doc: "Parsing error from FAISS response",
+      recommendation: "We could not classify your symptom confidently. Please seek professional medical advice."
     };
   }
-
-  // If unknown, now fallback to agent + internet
+  // Fallback to internet-based classification if needed
   if (parsed.urgency_level === "Unknown" || parsed.category === "Unknown") {
     const agentExecutor = await initializeAgentExecutorWithOptions(
       [tool],
@@ -107,27 +123,22 @@ Patient Symptom:
         verbose: true,
       }
     );
-
     const agentPrompt = `
 Given this health symptom: "${description}", use internet search to help determine:
-
 1. Urgency level: "Emergency", "Urgent Care", "Non-Urgent", "Follow-Up Needed", or "Unknown"
 2. Category: e.g., "Cardiac", "Allergy", "Neurological", or "Unknown"
-
-Be concise and respond in this JSON format:
-
+Respond in this JSON format:
 {
   "urgency_level": "...",
   "category": "...",
   "internet_info_used": true,
-  "used_doc": "Used Tavily search results here"
+  "used_doc": "Used Tavily search results here",
+  "recommendation": "A medically cautious recommendation based on the above. Suggest consulting a professional if unclear."
 }
 `;
-
     const agentResponse = await agentExecutor.invoke({
       input: agentPrompt,
     });
-
     let finalParsed;
     try {
       finalParsed = JSON.parse(agentResponse.output || "{}");
@@ -137,18 +148,19 @@ Be concise and respond in this JSON format:
         category: "Unknown",
         internet_info_used: true,
         used_doc: "Parsing failed from internet agent",
+        recommendation: "Your input was vague, and we could not classify it confidently. Please consult a medical professional."
       };
     }
-
     return {
       ...finalParsed,
-      top_context_used: finalParsed.used_doc || "Internet context used",
+      top_context_used: topContextUsed,
+      similarity_scores: scoredDocs,
     };
   }
-
   return {
     ...parsed,
-    top_context_used: parsed.used_doc || "No doc clearly supported classification",
+    top_context_used: topContextUsed,
+    similarity_scores: scoredDocs,
   };
 };
 

@@ -30,7 +30,7 @@ router.post("/", async (req, res) => {
     if (!isHealth) {
       return res.status(400).json({
         success: false,
-        error: "Only healthcare-related prompts are allowed.",
+        error: "Please provide a more specific symptom. Avoid vague inputs like 'not feeling well' or unrelated phrases.",
       });
     }
 
