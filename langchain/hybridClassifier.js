@@ -47,14 +47,9 @@ Otherwise, return false. Respond only with "true" or "false".
 
 const classifyWithHybridRAG = async (description) => {
   const faissStore = await faissStorePromise;
-  const resultsWithScores = await faissStore.similaritySearchWithScore(description, 5); // top 5
+  const resultsWithScores = await faissStore.similaritySearchWithScore(description, 5);
 
-  const usedDocs = resultsWithScores.map(([doc, score], i) => {
-    console.log(`🔍 Similarity Score [${i + 1}]:`, score.toFixed(4));
-    return doc.pageContent;
-  });
-
-  // Join used docs with separator to form the context string for prompt
+  const usedDocs = resultsWithScores.map(([doc, score]) => doc.pageContent);
   const context = usedDocs.join("\n---\n");
 
   const prompt = new PromptTemplate({
@@ -62,26 +57,16 @@ const classifyWithHybridRAG = async (description) => {
     template: `
 You are a highly cautious and knowledgeable medical triage assistant.
 
-You may be asked about any medical condition or health-related symptom. Use the provided internal documentation and internet search results if necessary. Always prefer internal documentation if it is sufficient.
+Use the provided internal documentation to classify the symptom.  
+If it is vague or no context supports a confident answer, return "Unknown" for both fields.
 
-Only provide a classification if you are confident based on clear, specific information.  
-If the symptom input is vague or lacks detail (e.g., "feeling sick", "not well", "unwell", etc.), do **not** make assumptions.  
-In such cases, set both "urgency_level" and "category" to "Unknown".
-
-The "category" can include any relevant medical condition area such as:
-- Cardiac, Flu, Allergy, Mental Health, Gastrointestinal, Neurological, Musculoskeletal, Respiratory, Dermatological, etc.  
-- Use other categories if more appropriate for the symptom.  
-- If unsure, use "Unknown".
-
-From the documents below, pick the single document that best supports your classification and include it exactly as-is in the field "used_doc".
-
-Respond strictly in this JSON format:
+Respond in this JSON format:
 
 {{
   "urgency_level": "Emergency" | "Urgent Care" | "Non-Urgent" | "Follow-Up Needed" | "Unknown",
-  "category": string (e.g., "Cardiac", "Infection", "Neurological", "Unknown", etc.),
-  "internet_info_used": true | false,
-  "used_doc": string (exact document content from the context that best supports your answer, or "None" if none clearly applies)
+  "category": string,
+  "internet_info_used": false,
+  "used_doc": string
 }}
 
 Context:
@@ -89,33 +74,84 @@ Context:
 
 Patient Symptom:
 {input}
-`
+    `
   });
 
-  const agentExecutor = await initializeAgentExecutorWithOptions(
-    [tool],
-    llm,
-    {
-      agentType: "openai-functions",
-      verbose: false,
-    }
-  );
-
-  const promptText = await prompt.format({
+  const llmPrompt = await prompt.format({
     context,
     input: description,
   });
 
-  const response = await agentExecutor.invoke({
-    input: promptText,
-  });
+  const response = await llm.invoke(llmPrompt);
+  let parsed;
 
-  const parsed = JSON.parse(response.output || "{}");
+  try {
+    parsed = JSON.parse(response.content || "{}");
+  } catch (e) {
+    console.error("Error parsing FAISS classification response:", response.content);
+    parsed = {
+      urgency_level: "Unknown",
+      category: "Unknown",
+      internet_info_used: false,
+      used_doc: "None"
+    };
+  }
+
+  // If unknown, now fallback to agent + internet
+  if (parsed.urgency_level === "Unknown" || parsed.category === "Unknown") {
+    const agentExecutor = await initializeAgentExecutorWithOptions(
+      [tool],
+      llm,
+      {
+        agentType: "openai-functions",
+        verbose: true,
+      }
+    );
+
+    const agentPrompt = `
+Given this health symptom: "${description}", use internet search to help determine:
+
+1. Urgency level: "Emergency", "Urgent Care", "Non-Urgent", "Follow-Up Needed", or "Unknown"
+2. Category: e.g., "Cardiac", "Allergy", "Neurological", or "Unknown"
+
+Be concise and respond in this JSON format:
+
+{
+  "urgency_level": "...",
+  "category": "...",
+  "internet_info_used": true,
+  "used_doc": "Used Tavily search results here"
+}
+`;
+
+    const agentResponse = await agentExecutor.invoke({
+      input: agentPrompt,
+    });
+
+    let finalParsed;
+    try {
+      finalParsed = JSON.parse(agentResponse.output || "{}");
+    } catch {
+      finalParsed = {
+        urgency_level: "Unknown",
+        category: "Unknown",
+        internet_info_used: true,
+        used_doc: "Parsing failed from internet agent",
+      };
+    }
+
+    return {
+      ...finalParsed,
+      top_context_used: finalParsed.used_doc || "Internet context used",
+    };
+  }
+
   return {
     ...parsed,
-    top_context_used: parsed.used_doc || "No supporting document found"
+    top_context_used: parsed.used_doc || "No doc clearly supported classification",
   };
 };
+
 
 module.exports = {
   classifyWithHybridRAG,
