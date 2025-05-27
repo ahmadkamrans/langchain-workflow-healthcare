@@ -50,22 +50,38 @@ const classifyWithHybridRAG = async (description) => {
   const docs = await retriever.getRelevantDocuments(description);
   const context = docs.map(doc => doc.pageContent).join("\n---\n");
 
-  const prompt = PromptTemplate.fromTemplate(`
-You are a medical triage assistant.
-Use the following internal documentation and internet search if needed.
-Always prefer internal docs if sufficient.
+  const prompt = new PromptTemplate({
+  inputVariables: ["context", "input"],
+  template: `
+You are a highly cautious and knowledgeable medical triage assistant.
+
+You may be asked about any medical condition or health-related symptom. Use the provided internal documentation and internet search results if necessary. Always prefer internal documentation if it is sufficient.
+
+Only provide a classification if you are confident based on clear, specific information.  
+If the symptom input is vague or lacks detail (e.g., "feeling sick", "not well", "unwell", etc.), do **not** make assumptions.  
+In such cases, set both "urgency_level" and "category" to "Unknown".
+
+The "category" can include any relevant medical condition area such as:
+- Cardiac, Flu, Allergy, Mental Health, Gastrointestinal, Neurological, Musculoskeletal, Respiratory, Dermatological, etc.  
+- Use other categories if more appropriate for the symptom.  
+- If unsure, use "Unknown".
+
+Respond strictly in this JSON format:
+
+{{
+  "urgency_level": "Emergency" | "Urgent Care" | "Non-Urgent" | "Follow-Up Needed" | "Unknown",
+  "category": string (e.g., "Cardiac", "Infection", "Neurological", "Unknown", etc.),
+  "internet_info_used": true | false
+}}
 
 Context:
 {context}
 
 Patient Symptom:
 {input}
+`
+});
 
-Respond in JSON format with:
-- urgency_level: (Emergency, Urgent Care, Non-Urgent, Follow-Up Needed)
-- category: (e.g., Cardiac, Flu, Mental Health, Allergy, etc.)
-- internet_info_used: true or false
-`);
 
   const agentExecutor = await initializeAgentExecutorWithOptions(
     [tool],
