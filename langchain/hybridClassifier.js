@@ -12,10 +12,10 @@ const embeddings = new OpenAIEmbeddings({
   modelName: "text-embedding-3-small",
 });
 
-const retrieverPromise = FaissStore.load(
+const faissStorePromise = FaissStore.load(
   path.join(__dirname, "../faiss_index"),
   embeddings
-).then(store => store.asRetriever());
+);
 
 const llm = new ChatOpenAI({
   openAIApiKey: process.env.OPENAI_API_KEY,
@@ -46,13 +46,20 @@ Otherwise, return false. Respond only with "true" or "false".
 };
 
 const classifyWithHybridRAG = async (description) => {
-  const retriever = await retrieverPromise;
-  const docs = await retriever.getRelevantDocuments(description);
-  const context = docs.map(doc => doc.pageContent).join("\n---\n");
+  const faissStore = await faissStorePromise;
+  const resultsWithScores = await faissStore.similaritySearchWithScore(description, 5); // top 5
+
+  const usedDocs = resultsWithScores.map(([doc, score], i) => {
+    console.log(`🔍 Similarity Score [${i + 1}]:`, score.toFixed(4));
+    return doc.pageContent;
+  });
+
+  // Join used docs with separator to form the context string for prompt
+  const context = usedDocs.join("\n---\n");
 
   const prompt = new PromptTemplate({
-  inputVariables: ["context", "input"],
-  template: `
+    inputVariables: ["context", "input"],
+    template: `
 You are a highly cautious and knowledgeable medical triage assistant.
 
 You may be asked about any medical condition or health-related symptom. Use the provided internal documentation and internet search results if necessary. Always prefer internal documentation if it is sufficient.
@@ -66,12 +73,15 @@ The "category" can include any relevant medical condition area such as:
 - Use other categories if more appropriate for the symptom.  
 - If unsure, use "Unknown".
 
+From the documents below, pick the single document that best supports your classification and include it exactly as-is in the field "used_doc".
+
 Respond strictly in this JSON format:
 
 {{
   "urgency_level": "Emergency" | "Urgent Care" | "Non-Urgent" | "Follow-Up Needed" | "Unknown",
   "category": string (e.g., "Cardiac", "Infection", "Neurological", "Unknown", etc.),
-  "internet_info_used": true | false
+  "internet_info_used": true | false,
+  "used_doc": string (exact document content from the context that best supports your answer, or "None" if none clearly applies)
 }}
 
 Context:
@@ -80,8 +90,7 @@ Context:
 Patient Symptom:
 {input}
 `
-});
-
+  });
 
   const agentExecutor = await initializeAgentExecutorWithOptions(
     [tool],
@@ -102,7 +111,10 @@ Patient Symptom:
   });
 
   const parsed = JSON.parse(response.output || "{}");
-  return parsed;
+  return {
+    ...parsed,
+    top_context_used: parsed.used_doc || "No supporting document found"
+  };
 };
 
 module.exports = {

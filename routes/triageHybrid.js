@@ -7,9 +7,22 @@ const {
 } = require("../langchain/hybridClassifier");
 
 router.post("/", async (req, res) => {
-  const { description } = req.body;
+  //console.log("🛬 Incoming /triage-hybrid request"); // NEW LOG
+  let { description } = req.body; // ✅ CHANGED from `const` to `let`
   if (!description || typeof description !== "string" || !description.trim()) {
     return res.status(400).json({ error: "Invalid symptom description." });
+  }
+
+  // 🔍 Prompt Engineering Middleware
+  if (
+    description.toLowerCase().includes("bleeding") &&
+    !description.match(
+      /(arm|leg|head|chest|wound|cut|nose|mouth|face|finger|toe|abdomen|back|shoulder|foot|thigh|eye|ear)/i
+    )
+  ) {
+    description +=
+      " (Note: User mentioned bleeding but did not specify where. Might need follow-up.)";
+    //console.log("🩸 Augmented Description:", description); // ✅ Add this
   }
 
   try {
