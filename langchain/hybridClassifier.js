@@ -1,10 +1,10 @@
-// langchain/hybridClassifier.js
 const path = require("path");
 const { FaissStore } = require("@langchain/community/vectorstores/faiss");
 const { OpenAIEmbeddings, ChatOpenAI } = require("@langchain/openai");
 const { TavilySearchResults } = require("@langchain/community/tools/tavily_search");
 const { initializeAgentExecutorWithOptions } = require("langchain/agents");
 const { PromptTemplate } = require("@langchain/core/prompts");
+const { traceable } = require("langsmith/traceable");
 require("dotenv").config();
 
 const embeddings = new OpenAIEmbeddings({
@@ -25,7 +25,7 @@ const llm = new ChatOpenAI({
 
 const tool = new TavilySearchResults({ apiKey: process.env.TAVILY_API_KEY });
 
-const isHealthcareRelated = async (description) => {
+const isHealthcareRelated = traceable(async (description) => {
   const checkLLM = new ChatOpenAI({
     openAIApiKey: process.env.OPENAI_API_KEY,
     modelName: "gpt-4",
@@ -42,9 +42,9 @@ Respond only with "true" or "false".
     { role: "user", content: description }
   ]);
   return result.content.trim().toLowerCase() === "true";
-};
+}, { name: "HealthCheck" });
 
-const classifyWithHybridRAG = async (description) => {
+const classifyWithHybridRAG = traceable(async (description) => {
   const faissStore = await faissStorePromise;
   const resultsWithScores = await faissStore.similaritySearchWithScore(description, 5);
   const scoredDocs = resultsWithScores
@@ -53,8 +53,8 @@ const classifyWithHybridRAG = async (description) => {
       score,
     }))
     .sort((a, b) => a.score - b.score); // lower = more similar
+
   if (scoredDocs.length === 0) {
-    console.warn("No FAISS docs matched. Skipping to internet fallback.");
     return {
       urgency_level: "Unknown",
       category: "Unknown",
@@ -65,9 +65,11 @@ const classifyWithHybridRAG = async (description) => {
       recommendation: "We could not find relevant internal references. Please consult a physician for evaluation."
     };
   }
+
   const usedDocs = scoredDocs.map((d) => d.content);
   const context = usedDocs.join("\n---\n");
   const topContextUsed = scoredDocs[0]?.content || "None";
+
   const prompt = new PromptTemplate({
     inputVariables: ["context", "input"],
     template: `
@@ -89,16 +91,12 @@ Patient Symptom:
 {input}
     `
   });
-  let llmPrompt;
-  try {
-    llmPrompt = await prompt.format({
-      context: String(context),
-      input: String(description),
-    });
-  } catch (err) {
-    console.error("Error formatting prompt template:", err);
-    throw new Error("Prompt formatting failed.");
-  }
+
+  const llmPrompt = await prompt.format({
+    context: String(context),
+    input: String(description),
+  });
+
   const response = await llm.invoke(llmPrompt);
   let parsed;
   try {
@@ -113,6 +111,7 @@ Patient Symptom:
       recommendation: "We could not classify your symptom confidently. Please seek professional medical advice."
     };
   }
+
   // Fallback to internet-based classification if needed
   if (parsed.urgency_level === "Unknown" || parsed.category === "Unknown") {
     const agentExecutor = await initializeAgentExecutorWithOptions(
@@ -123,6 +122,7 @@ Patient Symptom:
         verbose: true,
       }
     );
+
     const agentPrompt = `
 Given this health symptom: "${description}", use internet search to help determine:
 1. Urgency level: "Emergency", "Urgent Care", "Non-Urgent", "Follow-Up Needed", or "Unknown"
@@ -136,9 +136,11 @@ Respond in this JSON format:
   "recommendation": "A medically cautious recommendation based on the above. Suggest consulting a professional if unclear."
 }
 `;
+
     const agentResponse = await agentExecutor.invoke({
       input: agentPrompt,
     });
+
     let finalParsed;
     try {
       finalParsed = JSON.parse(agentResponse.output || "{}");
@@ -151,19 +153,20 @@ Respond in this JSON format:
         recommendation: "Your input was vague, and we could not classify it confidently. Please consult a medical professional."
       };
     }
+
     return {
       ...finalParsed,
       top_context_used: topContextUsed,
       similarity_scores: scoredDocs,
     };
   }
+
   return {
     ...parsed,
     top_context_used: topContextUsed,
     similarity_scores: scoredDocs,
   };
-};
-
+}, { name: "HybridRAGSymptomClassifier" });
 
 module.exports = {
   classifyWithHybridRAG,
