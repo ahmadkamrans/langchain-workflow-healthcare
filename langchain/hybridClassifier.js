@@ -42,11 +42,13 @@ const isHealthcareRelated = traceable(
       modelName: "gpt-3.5-turbo",
       temperature: 0,
     });
-    const systemPrompt = `
-You are a healthcare input validator.
-Return true if the user's input is a symptom or medical issue that could justify triage...
-Respond ONLY with "true" or "false".
+     const systemPrompt = `
+You are a strict healthcare input validator.
+Only return true if the user has clearly described one or more symptoms (e.g., chest pain, sore throat, fatigue) that could reasonably allow medical triage.
+If the input is too vague (e.g., "not feeling well", "kidney beans and heart something", "weird body issue"), or not a health symptom at all, return false.
+Respond only with "true" or "false".
 `;
+
     const result = await validator.invoke([
       { role: "system", content: systemPrompt },
       { role: "user", content: description }
