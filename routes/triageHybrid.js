@@ -1,19 +1,16 @@
-// routes/triageHybrid.js
 const express = require("express");
 const router = express.Router();
 const {
-  classifyWithHybridRAG,
+  classifyWithIntelligentRAG,
   isHealthcareRelated,
 } = require("../langchain/hybridClassifier");
-
 router.post("/", async (req, res) => {
-  //console.log("🛬 Incoming /triage-hybrid request"); // NEW LOG
-  let { description } = req.body; // ✅ CHANGED from `const` to `let`
+  let { description } = req.body;
+  // Basic validation
   if (!description || typeof description !== "string" || !description.trim()) {
     return res.status(400).json({ error: "Invalid symptom description." });
   }
-
-  // 🔍 Prompt Engineering Middleware
+  // :drop_of_blood: Simple NLP augmentation for 'bleeding' with no location
   if (
     description.toLowerCase().includes("bleeding") &&
     !description.match(
@@ -22,27 +19,35 @@ router.post("/", async (req, res) => {
   ) {
     description +=
       " (Note: User mentioned bleeding but did not specify where. Might need follow-up.)";
-    //console.log("🩸 Augmented Description:", description); // ✅ Add this
   }
-
   try {
+    // :bulb: Check if input is clearly medical-related
     const isHealth = await isHealthcareRelated(description);
     if (!isHealth) {
       return res.status(400).json({
         success: false,
-        error: "Please provide a more specific symptom. Avoid vague inputs like 'not feeling well' or unrelated phrases.",
+        error:
+          "Please provide a more specific symptom. Avoid vague or unrelated phrases.",
       });
     }
-
-    const result = await classifyWithHybridRAG(description);
+    // :brain: Hybrid RAG classifier with LangSmith trace
+    const result = await classifyWithIntelligentRAG(description);
+    // :white_check_mark: Success Response
     res.json({
       success: true,
       ...result,
     });
   } catch (err) {
-    console.error("Hybrid RAG classification error:", err);
-    res.status(500).json({ error: "Hybrid classification failed." });
+    console.error(":rotating_light: Hybrid RAG classification error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Hybrid classification failed due to internal error.",
+    });
   }
 });
-
 module.exports = router;
+
+
+
+
+
