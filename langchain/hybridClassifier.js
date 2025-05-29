@@ -1,3 +1,4 @@
+// langchain/hybridClassifier.js
 const path = require("path");
 require("dotenv").config();
 const { FaissStore } = require("@langchain/community/vectorstores/faiss");
@@ -8,7 +9,7 @@ const { traceable } = require("langsmith/traceable");
 let faissStorePromise;
 let llm;
 let tool;
-// Use async IIFE to initialize async dependencies
+let initialized = false;
 (async () => {
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: process.env.OPENAI_API_KEY,
@@ -23,17 +24,17 @@ let tool;
     modelName: "gpt-3.5-turbo",
     temperature: 0,
   });
-  // Moved maxResults into constructor, per LangChain.js usage
+  // Configure Tavily once, including maxResults
   tool = new TavilySearchResults({
     apiKey: process.env.TAVILY_API_KEY,
     maxResults: 5,
-    // you can also enable the following if desired:
     // includeAnswer: true,
     // includeRawContent: true,
     // includeImages: false,
   });
+  initialized = true;
 })();
-// Input Validator
+// Input validator remains unchanged
 const isHealthcareRelated = traceable(
   async (description) => {
     const validator = new ChatOpenAI({
@@ -43,9 +44,7 @@ const isHealthcareRelated = traceable(
     });
     const systemPrompt = `
 You are a healthcare input validator.
-Return true if the user's input is a symptom or medical issue that could justify triage (e.g., bleeding, chest pain, dizziness, shortness of breath).
-Even if the input is brief or lacks detail, as long as it clearly refers to a health-related issue, return true.
-Only return false if the input is completely unrelated (e.g., "aliens in my soup") or too vague (e.g., "I feel off", "weird stuff", "bad vibe").
+Return true if the user's input is a symptom or medical issue that could justify triage...
 Respond ONLY with "true" or "false".
 `;
     const result = await validator.invoke([
@@ -59,9 +58,12 @@ Respond ONLY with "true" or "false".
     projectName: process.env.LANGCHAIN_PROJECT || "RAG_Healthcare",
   }
 );
-// RAG Classifier
+// RAG Classifier with the fix
 const classifyWithIntelligentRAG = traceable(
   async (description) => {
+    if (!initialized) {
+      throw new Error("Hybrid classifier not initialized yet.");
+    }
     const faissStore = await faissStorePromise;
     const internalResults = await faissStore.similaritySearchWithScore(description, 5);
     const scoredDocs = internalResults
@@ -72,26 +74,27 @@ const classifyWithIntelligentRAG = traceable(
     let internetSuccess = false;
     try {
       console.log(":mag: Searching Tavily with:", description.trim());
-      // Invoke with a plain string input, not an object
-      const tavilyResults = await tool.invoke(description.trim());
-      if (Array.isArray(tavilyResults)) {
-        internetSnippets = tavilyResults.map(r => r.content).join("\n---\n");
+      const raw = await tool.call({ input: description.trim() });
+      console.log("raw Tavily output:", raw);
+      let arr = raw;
+      if (typeof raw === "string") {
+        try {
+          arr = JSON.parse(raw);
+        } catch {
+          arr = [];
+        }
+      }
+      if (Array.isArray(arr) && arr.length > 0) {
+        internetSnippets = arr.map((r) => r.content).join("\n---\n");
         internetSuccess = true;
       }
     } catch (err) {
-      console.error("Internet search failed:", err.message || err);
+      console.error("Internet search failed:", err);
     }
     const template = new PromptTemplate({
       inputVariables: ["description", "internalContext", "internetSnippets"],
       template: `
-You are an advanced medical triage classifier.
-You are given:
-- Internal documents from clinical sources.
-- Internet search snippets with public information.
-Your task is to:
-1. Decide which context (internal, internet, or both) is more relevant for classification.
-2. Classify the symptom using the most helpful information.
-If the input is vague or unclassifiable, return "Unknown".
+You are an advanced medical triage classifier...
 Respond only in this JSON format:
 {{
   "urgency_level": "Emergency" | "Urgent Care" | "Non-Urgent" | "Follow-Up Needed" | "Unknown",
@@ -119,14 +122,13 @@ Respond only in this JSON format:
     let parsed;
     try {
       parsed = JSON.parse(response.content || "{}");
-    } catch (err) {
-      console.error("Parsing failed:", response.content);
+    } catch {
       parsed = {
         urgency_level: "Unknown",
         category: "Unknown",
         context_used: "none",
         used_doc: "Parsing error",
-        recommendation: "We could not classify your symptom. Please consult a healthcare provider."
+        recommendation: "Unable to classify. Please consult a provider."
       };
     }
     return {
